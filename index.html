@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Wheel Tracker</title>
+  <meta name="theme-color" content="#1A3A6B">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Wheel">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <style>
+    :root {
+      --navy: #1A3A6B;
+      --teal: #2D8A6E;
+      --green: #4CAF7D;
+      --red: #c0392b;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --line: #d9dee5;
+      --text: #1f2430;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 16px;
+    }
+    header {
+      background: var(--navy); color: #fff;
+      padding: 14px 16px;
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 1px 4px rgba(0,0,0,.15);
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+    header p { margin: 2px 0 0; font-size: 12px; opacity: .8; }
+
+    .wrap { max-width: 560px; margin: 0 auto; padding: 14px 14px 40px; }
+
+    /* Segmented toggle */
+    .seg {
+      display: flex; background: #e7ebf1; border-radius: 12px; padding: 4px; margin-bottom: 16px;
+    }
+    .seg button {
+      flex: 1; border: 0; background: transparent; color: var(--muted);
+      font-size: 15px; font-weight: 600; padding: 11px 8px; border-radius: 9px;
+      cursor: pointer;
+    }
+    .seg button.active { background: #fff; color: var(--navy); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+      padding: 16px; margin-bottom: 16px;
+    }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    .hint { font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 5px; }
+
+    input, select, textarea {
+      width: 100%; font-size: 16px; /* 16px avoids iOS zoom-on-focus */
+      padding: 12px 12px; border: 1px solid var(--line); border-radius: 10px;
+      background: #fff; color: var(--text); outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(45,138,110,.15); }
+    input[readonly] { background: #f1f3f6; color: var(--muted); }
+    textarea { min-height: 64px; resize: vertical; }
+
+    .row { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+
+    .btn {
+      width: 100%; border: 0; border-radius: 12px; color: #fff;
+      font-size: 17px; font-weight: 700; padding: 15px; cursor: pointer; margin-top: 4px;
+    }
+    .btn:disabled { opacity: .6; }
+    .btn-csp { background: var(--red); }
+    .btn-cc  { background: var(--green); }
+    .btn-div { background: var(--teal); }
+
+    .refresh {
+      background: none; border: 0; color: var(--teal); font-size: 13px; font-weight: 600;
+      padding: 0; cursor: pointer; float: right;
+    }
+
+    .mainnav { display: flex; gap: 8px; margin-bottom: 14px; }
+    .mainnav button {
+      flex: 1; border: 1px solid var(--line); background: #fff; color: var(--muted);
+      font-size: 15px; font-weight: 700; padding: 12px; border-radius: 11px; cursor: pointer;
+    }
+    .mainnav button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    .dashhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; min-height: 20px; }
+    .sectitle { font-size: 13px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: .4px; margin: 0 0 8px; }
+    .kpi { display: flex; align-items: baseline; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #eef1f5; }
+    .kpi:last-child { border-bottom: 0; }
+    .kpi .k { font-size: 14px; color: var(--muted); }
+    .brk .kpi .k { font-weight: 600; color: var(--text); }
+    .kpi .v { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+    .pos { color: var(--teal); } .neg { color: var(--red); }
+    .empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+
+    .pos-h { font-size: 16px; font-weight: 700; color: var(--navy); }
+    .pos-line { font-size: 16px; font-weight: 600; color: var(--navy); }
+    .chk { font-size: 13px; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .chk input { width: auto; }
+    .btn-update {
+      width: 100%; border: 0; border-radius: 11px; background: var(--navy); color: #fff;
+      font-size: 15px; font-weight: 700; padding: 13px; cursor: pointer; margin-top: 8px;
+    }
+    .btn-update:disabled { opacity: .6; }
+
+    .tappable { cursor: pointer; }
+    .tappable:active { background: #f0f3f7; }
+    .chev { color: #c2cad4; font-weight: 700; margin-left: 4px; }
+
+    .drill { position: fixed; inset: 0; background: rgba(15,20,30,.45); z-index: 60; display: flex; align-items: flex-end; }
+    .drill.hidden { display: none; }
+    .drill-card { background: #fff; width: 100%; max-height: 82vh; border-radius: 16px 16px 0 0; display: flex; flex-direction: column; box-shadow: 0 -6px 24px rgba(0,0,0,.25); }
+    .drill-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .drill-head span { font-size: 15px; font-weight: 700; color: var(--navy); }
+    .drill-x { border: 0; background: none; font-size: 26px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0 4px; }
+    .drill-total { padding: 10px 16px; font-size: 13px; color: var(--muted); border-bottom: 1px solid #eef1f5; }
+    .drill-total b { font-size: 16px; font-variant-numeric: tabular-nums; }
+    .drill-body { overflow-y: auto; padding: 4px 16px 22px; -webkit-overflow-scrolling: touch; }
+    .tx { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 0; border-bottom: 1px solid #f0f3f7; gap: 10px; }
+    .tx:last-child { border-bottom: 0; }
+    .tx .l { display: flex; flex-direction: column; }
+    .tx .l .t { font-weight: 700; color: var(--text); font-size: 15px; }
+    .tx .l .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .tx .a { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .tx.win .t, .tx.win .s, .tx.win .a { color: var(--teal); }
+    .tx.lose .t, .tx.lose .s, .tx.lose .a { color: var(--red); }
+    .tx.win { background: #eaf7ef; } .tx.lose { background: #fdecec; }
+
+    .netpnl { display: flex; align-items: center; justify-content: space-between; }
+    .np-label { font-size: 13px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: .5px; }
+    .np-val { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    .fltbar { display: flex; gap: 8px; margin-bottom: 8px; }
+    .fltbar select { flex: 1; font-size: 14px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--text); }
+    .fltbar select:disabled { background: #f1f3f6; color: var(--muted); }
+    .fltnote { font-size: 11px; color: var(--muted); margin: 0 2px 10px; }
+    .chips { display: flex; gap: 8px; margin-bottom: 8px; }
+    .chips button { border: 1px solid var(--line); background: #fff; color: var(--muted); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+    .chips button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    .np-sub { display: block; font-size: 10px; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; margin-top: 2px; }
+    .pctgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .pcell { background: #f6f8fa; border-radius: 9px; padding: 8px 10px; display: flex; flex-direction: column; }
+    .pcell .pk { font-size: 11px; color: var(--muted); }
+    .pcell .pv { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 1px; }
+    .kpib { padding: 9px 0; border-bottom: 1px solid #eef1f5; }
+    .kpib:last-child { border-bottom: 0; }
+    .kpirow { display: flex; align-items: baseline; justify-content: space-between; }
+    .kpirow .k { font-size: 14px; color: var(--muted); }
+    .brk .kpirow .k { font-weight: 600; color: var(--text); }
+    .kpirow .v { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+    .barbg { height: 4px; background: #eef1f5; border-radius: 2px; margin-top: 6px; }
+    .barfill { height: 4px; border-radius: 2px; background: var(--teal); }
+    .barfill.neg { background: var(--red); }
+
+    .hidden { display: none; }
+
+    /* Toast */
+    #toast {
+      position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px);
+      background: #1f2430; color: #fff; padding: 13px 18px; border-radius: 12px;
+      font-size: 14px; max-width: 90%; text-align: center; opacity: 0;
+      transition: opacity .25s, transform .25s; z-index: 50; box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.ok  { background: var(--teal); }
+    #toast.err { background: var(--red); }
+
+    /* Installed-app layout: clear the notch, home indicator and rounded corners */
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding-top: calc(14px + env(safe-area-inset-top));
+      padding-left: calc(16px + env(safe-area-inset-left));
+      padding-right: calc(16px + env(safe-area-inset-right));
+    }
+    .wrap { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+    #toast { bottom: calc(22px + env(safe-area-inset-bottom)); }
+    .drill-body { padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+    .hbtn {
+      border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff;
+      font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 9px; cursor: pointer;
+    }
+    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+    .setup {
+      position: fixed; inset: 0; z-index: 70; background: var(--bg); overflow-y: auto;
+      padding: calc(28px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+    }
+    .setup .card { max-width: 520px; margin: 0 auto; }
+    .setup h2 { margin: 0 0 6px; font-size: 20px; color: var(--navy); }
+    .setup .lead { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+    .btn-setup { background: var(--navy); }
+    .btn-link {
+      display: block; width: 100%; margin-top: 10px; border: 0; background: none;
+      color: var(--muted); font-size: 15px; font-weight: 600; padding: 10px; cursor: pointer;
+    }
+    .setup-status { font-size: 14px; margin-top: 12px; min-height: 20px; text-align: center; }
+    .setup-status.err { color: var(--red); }
+    .setup-status.ok { color: var(--teal); }
+    .setup.hidden, .btn-link.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Wheel Tracker</h1>
+      <p>Adds straight into your tracker sheet</p>
+    </div>
+    <button class="hbtn" onclick="Api.showSetup()" aria-label="Connection settings">Settings</button>
+  </header>
+
+  <div class="wrap">
+    <div class="mainnav">
+      <button id="navTrade" class="active" onclick="showView('trade')">&#9998; Trade</button>
+      <button id="navManage" onclick="showView('manage')">&#9881; Manage</button>
+      <button id="navDash" onclick="showView('dashboard')">&#128202; Dashboard</button>
+    </div>
+
+    <div id="viewTrade">
+    <div class="seg">
+      <button id="tabCsp" class="active" onclick="showForm('csp')">CSP</button>
+      <button id="tabCc" onclick="showForm('cc')">Call</button>
+      <button id="tabDiv" onclick="showForm('div')">Dividend</button>
+    </div>
+
+    <!-- ===================== CSP FORM ===================== -->
+    <div id="formCsp" class="card">
+      <div class="field">
+        <label>Ticker</label>
+        <input id="cspTicker" type="text" autocapitalize="characters" autocomplete="off" placeholder="e.g. SCHD">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Open Date</label>
+          <input id="cspOpenDate" type="date">
+        </div>
+        <div class="field">
+          <label>Expiry</label>
+          <input id="cspExpiry" type="date">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Strike</label>
+          <input id="cspStrike" type="number" inputmode="decimal" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>Premium / share</label>
+          <input id="cspPremium" type="number" inputmode="decimal" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <div class="field">
+        <label>Quantity (shares)</label>
+        <input id="cspQty" type="number" inputmode="numeric" step="100" placeholder="e.g. 100">
+        <div class="hint">Shares = contracts &times; 100</div>
+      </div>
+      <div class="field">
+        <label>Notes (optional)</label>
+        <textarea id="cspNotes" placeholder=""></textarea>
+      </div>
+      <button id="btnCsp" class="btn btn-csp" onclick="submitCSP()">Add CSP</button>
+    </div>
+
+    <!-- ===================== CC FORM ===================== -->
+    <div id="formCc" class="card hidden">
+      <div class="field">
+        <label>Origin CSP (assigned, open leg)
+          <button class="refresh" onclick="loadCSPs()">&#8635; Refresh</button>
+        </label>
+        <select id="ccOriginCsp" onchange="syncCcTicker()">
+          <option value="">Loading&hellip;</option>
+        </select>
+        <div class="hint">Only assigned puts with no open/assigned call appear here.</div>
+      </div>
+      <div class="field">
+        <label>Ticker</label>
+        <input id="ccTicker" type="text" readonly>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Open Date</label>
+          <input id="ccOpenDate" type="date">
+        </div>
+        <div class="field">
+          <label>Expiry</label>
+          <input id="ccExpiry" type="date">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Strike</label>
+          <input id="ccStrike" type="number" inputmode="decimal" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>Premium / share</label>
+          <input id="ccPremium" type="number" inputmode="decimal" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <div class="field">
+        <label>Quantity (shares)</label>
+        <input id="ccQty" type="number" inputmode="numeric" step="100" placeholder="e.g. 100">
+        <div class="hint">Shares = contracts &times; 100</div>
+      </div>
+      <div class="field">
+        <label>Notes (optional)</label>
+        <textarea id="ccNotes" placeholder=""></textarea>
+      </div>
+      <button id="btnCc" class="btn btn-cc" onclick="submitCC()">Add Covered Call</button>
+    </div>
+
+    <!-- ===================== DIVIDEND FORM ===================== -->
+    <div id="formDiv" class="card hidden">
+      <div class="field">
+        <label>Ticker</label>
+        <input id="divTicker" type="text" autocapitalize="characters" autocomplete="off" placeholder="e.g. SCHD">
+      </div>
+      <div class="field">
+        <label>Date Received</label>
+        <input id="divDate" type="date">
+      </div>
+      <div class="field">
+        <label>Amount Received ($)</label>
+        <input id="divAmount" type="number" inputmode="decimal" step="0.01" placeholder="0.00">
+        <div class="hint">Total dollars received &mdash; this is what the dashboard sums.</div>
+      </div>
+      <div class="field">
+        <label>Dividend / share (optional)</label>
+        <input id="divPerShare" type="number" inputmode="decimal" step="0.0001" placeholder="0.0000">
+      </div>
+      <button id="btnDiv" class="btn btn-div" onclick="submitDiv()">Add Dividend</button>
+    </div>
+    </div><!-- /viewTrade -->
+
+    <div id="viewDashboard" class="hidden">
+      <div class="chips">
+        <button id="chipAll" class="on" onclick="applyQuickFilter('all')">All</button>
+        <button id="chipYtd" onclick="applyQuickFilter('ytd')">YTD</button>
+        <button id="chipMonth" onclick="applyQuickFilter('month')">This month</button>
+      </div>
+      <div class="fltbar">
+        <select id="fltYear" onchange="onYearChange()"><option value="">All years</option></select>
+        <select id="fltMonth" onchange="onMonthChange()" disabled>
+          <option value="">All months</option>
+          <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+          <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+          <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+          <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+        </select>
+      </div>
+      <div id="fltNote" class="fltnote hidden">Income/premium/dividends filtered by sold date &middot; holdings shown live</div>
+      <div class="dashhead">
+        <span id="dashAsOf" class="hint"></span>
+        <button class="refresh" onclick="loadDashboard()">&#8635; Refresh</button>
+      </div>
+      <div id="dashBody"><div class="card empty">Loading&hellip;</div></div>
+    </div>
+
+    <div id="viewManage" class="hidden">
+      <div class="seg">
+        <button id="mTabPut" class="active" onclick="showManage('CSP')">Puts</button>
+        <button id="mTabCall" onclick="showManage('CC')">Calls</button>
+      </div>
+      <div class="dashhead">
+        <label class="chk"><input type="checkbox" id="mShowAll" onchange="loadPositions()"> Show finalized</label>
+        <button class="refresh" onclick="loadPositions()">&#8635; Refresh</button>
+      </div>
+      <div id="manageBody"><div class="card empty">Loading&hellip;</div></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="setup" class="setup hidden" role="dialog" aria-labelledby="setupTitle">
+    <div class="card">
+      <h2 id="setupTitle">Connect to your tracker</h2>
+      <p class="lead">Paste the web app URL from your API deployment and the key from Wheel Tracker &rsaquo; Generate Mobile App Key. Both stay on this phone.</p>
+      <div class="field">
+        <label for="setupUrl">Web app URL</label>
+        <input id="setupUrl" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/&hellip;/exec">
+      </div>
+      <div class="field">
+        <label for="setupKey">App key</label>
+        <input id="setupKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <button id="btnSetup" class="btn btn-setup" onclick="Api.saveSetup()">Connect</button>
+      <button id="btnSetupCancel" class="btn-link hidden" onclick="Api.hideSetup()">Cancel</button>
+      <div id="setupStatus" class="setup-status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <script src="./api.js"></script>
+
+  <div id="drill" class="drill hidden" onclick="if(event.target===this)closeDrill()">
+    <div class="drill-card">
+      <div class="drill-head">
+        <span id="drillTitle">Details</span>
+        <button class="drill-x" onclick="closeDrill()">&times;</button>
+      </div>
+      <div id="drillTotal" class="drill-total"></div>
+      <div id="drillBody" class="drill-body"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- helpers ---------- */
+    function $(id) { return document.getElementById(id); }
+
+    function todayStr() {
+      var d = new Date();
+      var m = ('0' + (d.getMonth() + 1)).slice(-2);
+      var day = ('0' + d.getDate()).slice(-2);
+      return d.getFullYear() + '-' + m + '-' + day;
+    }
+
+    function toast(msg, kind) {
+      var t = $('toast');
+      t.textContent = msg;
+      t.className = 'show ' + (kind || '');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(function () { t.className = t.className.replace('show', '').trim(); }, 3200);
+    }
+
+    function showForm(which) {
+      ['csp', 'cc', 'div'].forEach(function (f) {
+        $('form' + cap(f)).classList.toggle('hidden', f !== which);
+      });
+      $('tabCsp').classList.toggle('active', which === 'csp');
+      $('tabCc').classList.toggle('active', which === 'cc');
+      $('tabDiv').classList.toggle('active', which === 'div');
+    }
+
+    function setDefaults() {
+      $('cspOpenDate').value = todayStr();
+      $('ccOpenDate').value = todayStr();
+      $('divDate').value = todayStr();
+    }
+
+    /* ---------- CSP ---------- */
+    function submitCSP() {
+      var ticker = $('cspTicker').value.trim().toUpperCase();
+      var strike = parseFloat($('cspStrike').value);
+      var premium = parseFloat($('cspPremium').value);
+      var qty = parseInt($('cspQty').value, 10);
+
+      if (!ticker) { toast('Enter a ticker', 'err'); return; }
+      if (!$('cspOpenDate').value) { toast('Enter an open date', 'err'); return; }
+      if (!$('cspExpiry').value) { toast('Enter an expiry', 'err'); return; }
+      if (isNaN(strike) || isNaN(premium) || isNaN(qty)) { toast('Strike, premium and quantity must be numbers', 'err'); return; }
+
+      var trade = {
+        ticker: ticker,
+        openDate: $('cspOpenDate').value,
+        expiry: $('cspExpiry').value,
+        strike: strike,
+        premium: premium,
+        qty: qty,
+        notes: $('cspNotes').value
+      };
+
+      var btn = $('btnCsp');
+      btn.disabled = true; btn.textContent = 'Adding\u2026';
+      google.script.run
+        .withSuccessHandler(function (newId) {
+          btn.disabled = false; btn.textContent = 'Add CSP';
+          toast('CSP added: ' + newId, 'ok');
+          clearCsp();
+          loadCSPs(); // a new assigned leg may become available later
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false; btn.textContent = 'Add CSP';
+          toast('Failed: ' + err.message, 'err');
+        })
+        .addCSP(trade);
+    }
+
+    function clearCsp() {
+      $('cspTicker').value = '';
+      $('cspStrike').value = '';
+      $('cspPremium').value = '';
+      $('cspQty').value = '';
+      $('cspNotes').value = '';
+      $('cspOpenDate').value = todayStr();
+    }
+
+    /* ---------- CC ---------- */
+    function loadCSPs() {
+      var sel = $('ccOriginCsp');
+      sel.innerHTML = '<option value="">Loading\u2026</option>';
+      google.script.run
+        .withSuccessHandler(function (items) {
+          sel.innerHTML = '';
+          if (!items || !items.length) {
+            var o = document.createElement('option');
+            o.value = ''; o.textContent = 'No assigned open legs';
+            o.disabled = true; o.selected = true;
+            sel.appendChild(o);
+            syncCcTicker();
+            return;
+          }
+          var ph = document.createElement('option');
+          ph.value = ''; ph.textContent = 'Select a leg\u2026';
+          sel.appendChild(ph);
+          items.forEach(function (item) {
+            var o = document.createElement('option');
+            o.value = item.id;
+            o.textContent = item.label;
+            o.dataset.ticker = item.ticker;
+            sel.appendChild(o);
+          });
+          syncCcTicker();
+        })
+        .withFailureHandler(function (err) {
+          sel.innerHTML = '<option value="">Error loading legs</option>';
+          toast('Failed to load legs: ' + err.message, 'err');
+        })
+        .getCSPList();
+    }
+
+    function syncCcTicker() {
+      var sel = $('ccOriginCsp');
+      var opt = sel.selectedOptions && sel.selectedOptions[0];
+      $('ccTicker').value = (opt && opt.dataset && opt.dataset.ticker) ? opt.dataset.ticker : '';
+    }
+
+    function submitCC() {
+      var sel = $('ccOriginCsp');
+      var opt = sel.selectedOptions && sel.selectedOptions[0];
+      if (!sel.value || !opt || opt.disabled) {
+        toast('Pick an origin leg first', 'err'); return;
+      }
+      var strike = parseFloat($('ccStrike').value);
+      var premium = parseFloat($('ccPremium').value);
+      var qty = parseInt($('ccQty').value, 10);
+
+      if (!$('ccOpenDate').value) { toast('Enter an open date', 'err'); return; }
+      if (!$('ccExpiry').value) { toast('Enter an expiry', 'err'); return; }
+      if (isNaN(strike) || isNaN(premium) || isNaN(qty)) { toast('Strike, premium and quantity must be numbers', 'err'); return; }
+
+      var trade = {
+        originCspId: sel.value,
+        ticker: (opt.dataset && opt.dataset.ticker) || '',
+        openDate: $('ccOpenDate').value,
+        expiry: $('ccExpiry').value,
+        strike: strike,
+        premium: premium,
+        qty: qty,
+        notes: $('ccNotes').value
+      };
+
+      var btn = $('btnCc');
+      btn.disabled = true; btn.textContent = 'Adding\u2026';
+      google.script.run
+        .withSuccessHandler(function (newId) {
+          btn.disabled = false; btn.textContent = 'Add Covered Call';
+          toast('Covered Call added: ' + newId, 'ok');
+          clearCc();
+          loadCSPs(); // the leg now has an open call, so it drops off the list
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false; btn.textContent = 'Add Covered Call';
+          toast('Failed: ' + err.message, 'err');
+        })
+        .addCC(trade);
+    }
+
+    function clearCc() {
+      $('ccStrike').value = '';
+      $('ccPremium').value = '';
+      $('ccQty').value = '';
+      $('ccNotes').value = '';
+      $('ccOpenDate').value = todayStr();
+      $('ccOriginCsp').selectedIndex = 0;
+      syncCcTicker();
+    }
+
+    /* ---------- Dividend ---------- */
+    function submitDiv() {
+      var ticker = $('divTicker').value.trim().toUpperCase();
+      var amount = parseFloat($('divAmount').value);
+      if (!ticker) { toast('Enter a ticker', 'err'); return; }
+      if (!$('divDate').value) { toast('Enter a date', 'err'); return; }
+      if (isNaN(amount)) { toast('Enter the amount received', 'err'); return; }
+
+      var perShareRaw = $('divPerShare').value;
+      var div = {
+        ticker: ticker,
+        date: $('divDate').value,
+        amount: amount,
+        perShare: perShareRaw === '' ? '' : parseFloat(perShareRaw)
+      };
+
+      var btn = $('btnDiv');
+      btn.disabled = true; btn.textContent = 'Adding\u2026';
+      google.script.run
+        .withSuccessHandler(function (t) {
+          btn.disabled = false; btn.textContent = 'Add Dividend';
+          toast('Dividend added: ' + t, 'ok');
+          clearDiv();
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false; btn.textContent = 'Add Dividend';
+          toast('Failed: ' + err.message, 'err');
+        })
+        .addDividend(div);
+    }
+
+    function clearDiv() {
+      $('divTicker').value = '';
+      $('divAmount').value = '';
+      $('divPerShare').value = '';
+      $('divDate').value = todayStr();
+    }
+
+    /* ---------- view switching ---------- */
+    var dashLoaded = false;
+
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    function showView(which) {
+      ['trade', 'manage', 'dashboard'].forEach(function (v) {
+        $('view' + cap(v)).classList.toggle('hidden', v !== which);
+      });
+      $('navTrade').classList.toggle('active', which === 'trade');
+      $('navManage').classList.toggle('active', which === 'manage');
+      $('navDash').classList.toggle('active', which === 'dashboard');
+      if (which === 'dashboard' && !dashLoaded) loadDashboard();
+      if (which === 'manage') loadPositions();
+    }
+
+    /* ---------- manage positions ---------- */
+    var manageKind = 'CSP';
+    var STATUSES = ['OPEN', 'CLOSED', 'EXPIRED', 'ASSIGNED'];
+
+    function showManage(kind) {
+      manageKind = kind;
+      $('mTabPut').classList.toggle('active', kind === 'CSP');
+      $('mTabCall').classList.toggle('active', kind === 'CC');
+      loadPositions();
+    }
+
+    function loadPositions() {
+      $('manageBody').innerHTML = '<div class="card empty">Loading\u2026</div>';
+      var showAll = $('mShowAll') ? $('mShowAll').checked : false;
+      google.script.run
+        .withSuccessHandler(renderPositions)
+        .withFailureHandler(function (err) {
+          $('manageBody').innerHTML = '<div class="card empty">Failed: ' + err.message + '</div>';
+        })
+        .getOpenPositions(manageKind, showAll);
+    }
+
+    function renderPositions(items) {
+      var kind = manageKind;
+      if (!items || !items.length) {
+        var showAll = $('mShowAll') && $('mShowAll').checked;
+        $('manageBody').innerHTML = '<div class="card empty">No ' +
+          (showAll ? (kind === 'CC' ? 'calls' : 'puts')
+                   : (kind === 'CC' ? 'open calls' : 'open puts')) +
+          ' to show.</div>';
+        return;
+      }
+      var h = '';
+      items.forEach(function (it, i) {
+        var opts = STATUSES.map(function (s) {
+          return '<option value="' + s + '"' + (s === it.status ? ' selected' : '') + '>' + s + '</option>';
+        }).join('');
+        h += '<div class="card"' + (it.active ? '' : ' style="opacity:.62"') + '>';
+        h += '<div class="pos-line">' + it.ticker + '&nbsp;&nbsp;&middot;&nbsp;&nbsp;$' + it.strike + '&nbsp;&nbsp;&middot;&nbsp;&nbsp;' + (it.expiry || '\u2014') + '</div>';
+        h += '<div class="field" style="margin-top:10px"><label>Status</label>' +
+             '<select id="st_' + kind + '_' + i + '" onchange="onStatusChange(\'' + kind + '\',' + i + ')">' + opts + '</select></div>';
+        if (kind === 'CC') {
+          h += '<div id="cpw_' + kind + '_' + i + '" class="field hidden"><label>Close price / share</label>' +
+               '<input id="cp_' + kind + '_' + i + '" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div>';
+        }
+        h += '<button id="upd_' + kind + '_' + i + '" class="btn-update" onclick="updateStatus(\'' + kind + '\',' + i + ',\'' + it.id + '\')">Update</button>';
+        h += '</div>';
+      });
+      $('manageBody').innerHTML = h;
+    }
+
+    function onStatusChange(kind, i) {
+      if (kind !== 'CC') return;
+      var sel = $('st_' + kind + '_' + i), wrap = $('cpw_' + kind + '_' + i);
+      if (wrap) wrap.classList.toggle('hidden', sel.value !== 'CLOSED');
+    }
+
+    function updateStatus(kind, i, id) {
+      var status = $('st_' + kind + '_' + i).value;
+      var btn = $('upd_' + kind + '_' + i);
+      function reset() { btn.disabled = false; btn.textContent = 'Update'; }
+      function ok() { reset(); toast(id + ' \u2192 ' + status, 'ok'); loadPositions(); }
+      function fail(err) { reset(); toast('Failed: ' + err.message, 'err'); }
+
+      btn.disabled = true; btn.textContent = 'Saving\u2026';
+      if (kind === 'CC') {
+        var cp = null;
+        if (status === 'CLOSED') {
+          cp = parseFloat($('cp_' + kind + '_' + i).value);
+          if (isNaN(cp)) { reset(); toast('Enter a close price', 'err'); return; }
+        }
+        google.script.run.withSuccessHandler(ok).withFailureHandler(fail).setCCStatus(id, status, cp);
+      } else {
+        google.script.run.withSuccessHandler(ok).withFailureHandler(fail).setCSPStatus(id, status);
+      }
+    }
+
+    /* ---------- dashboard formatting ---------- */
+    function money(n) {
+      if (n === null || n === undefined || isNaN(n)) return '\u2014';
+      var neg = n < 0, s = '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return neg ? '-' + s : s;
+    }
+    function pct(n) {
+      if (n === null || n === undefined || isNaN(n)) return '\u2014';
+      return (n * 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    }
+    function num(n, d) { return (n || 0).toLocaleString('en-US', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
+    function cls(n) { return n > 0 ? 'pos' : (n < 0 ? 'neg' : ''); }
+    function row(k, v, vClass) { return '<div class="kpi"><span class="k">' + k + '</span><span class="v ' + (vClass || '') + '">' + v + '</span></div>'; }
+    // Tappable KPI row that opens a drill-down.
+    function rowD(k, v, vClass, scope, key) {
+      return '<div class="kpi tappable" onclick="openDrill(\'' + scope + '\',\'' + (key || '') + '\')">' +
+        '<span class="k">' + k + '<span class="chev">\u203a</span></span>' +
+        '<span class="v ' + (vClass || '') + '">' + v + '</span></div>';
+    }
+
+    // Compact cell for the derived-percentages grid (no drill; derived values).
+    function pcell(k, v, vClass) {
+      return '<div class="pcell"><span class="pk">' + k + '</span>' +
+        '<span class="pv ' + (vClass || '') + '">' + v + '</span></div>';
+    }
+    // Tappable row with a proportional bar under it (share of the largest value).
+    function rowB(label, value, amount, maxAbs, scope, key) {
+      var w = maxAbs > 0 ? Math.max(2, Math.round(Math.abs(amount) / maxAbs * 100)) : 0;
+      return '<div class="kpib tappable" onclick="openDrill(\'' + scope + '\',\'' + (key || '') + '\')">' +
+        '<div class="kpirow"><span class="k">' + label + '<span class="chev">\u203a</span></span>' +
+        '<span class="v ' + cls(amount) + '">' + value + '</span></div>' +
+        '<div class="barbg"><div class="barfill' + (amount < 0 ? ' neg' : '') + '" style="width:' + w + '%"></div></div></div>';
+    }
+
+    function tickerCard(title, items, scope) {
+      var h = '<div class="card brk"><p class="sectitle">' + title + '</p>';
+      if (!items || !items.length) return h + '<div class="empty">No data yet</div></div>';
+      var maxAbs = 0;
+      items.forEach(function (it) { maxAbs = Math.max(maxAbs, Math.abs(it.value)); });
+      items.forEach(function (it) { h += rowB(it.ticker, money(it.value), it.value, maxAbs, scope, it.ticker); });
+      return h + '</div>';
+    }
+    function seriesCard(title, items, scope) {
+      var h = '<div class="card brk"><p class="sectitle">' + title + '</p>';
+      if (!items || !items.length) return h + '<div class="empty">No data yet</div></div>';
+      var maxAbs = 0;
+      items.forEach(function (it) { maxAbs = Math.max(maxAbs, Math.abs(it.realized)); });
+      items.forEach(function (it) { h += rowB(it.label, money(it.realized), it.realized, maxAbs, scope, it.key); });
+      return h + '</div>';
+    }
+    // Current average cost + live P&L per open assigned ticker.
+    function avgCostCard(title, items) {
+      var h = '<div class="card brk"><p class="sectitle">' + title + '</p>';
+      if (!items || !items.length) return h + '<div class="empty">No shares currently held</div></div>';
+      var tNet = 0, tPnL = 0;
+      items.forEach(function (it) {
+        // Whole line green when net P&L is positive (avg cost below live price), red when negative.
+        var rowClass = it.hasLive ? (it.win ? 'win' : 'lose') : '';
+        var pnl = it.hasLive ? money(it.netPnL) : '\u2014';
+        h += '<div class="tx ' + rowClass + '"><div class="l"><span class="t">' + it.ticker + '</span>' +
+          '<span class="s">' + num(it.shares) + ' sh \u00b7 avg ' + money(it.avgCost) +
+          ' \u00b7 LP ' + (it.hasLive ? money(it.livePrice) : '\u2014') +
+          ' \u00b7 val ' + (it.hasLive ? money(it.liveCost) : '\u2014') + '</span></div>' +
+          '<span class="a">' + pnl + '</span></div>';
+        tNet += it.netCost; if (it.hasLive) tPnL += it.netPnL;
+      });
+      h += '<div class="tx" style="border-top:2px solid var(--navy)"><div class="l">' +
+        '<span class="t">TOTAL</span><span class="s">net cost ' + money(tNet) + '</span></div>' +
+        '<span class="a ' + (tPnL >= 0 ? 'pos' : 'neg') + '">' + money(tPnL) + '</span></div>';
+      return h + '</div>';
+    }
+
+    /* ---------- drill-down ---------- */
+    function currentFilter() {
+      var y = $('fltYear') ? $('fltYear').value : '';
+      var m = $('fltMonth') ? $('fltMonth').value : '';
+      return { year: y, month: y ? m : '' };
+    }
+    function onYearChange() {
+      var y = $('fltYear').value;
+      var m = $('fltMonth');
+      m.disabled = !y;
+      if (!y) m.value = '';
+      syncChips();
+      loadDashboard();
+    }
+    function onMonthChange() {
+      syncChips();
+      loadDashboard();
+    }
+    // Quick filters: All / year-to-date / current month. Chips and dropdowns stay in sync.
+    function applyQuickFilter(kind) {
+      var y = $('fltYear'), m = $('fltMonth');
+      var now = new Date();
+      if (kind === 'all') {
+        y.value = ''; m.value = ''; m.disabled = true;
+      } else {
+        var yr = String(now.getFullYear());
+        var has = false;
+        for (var i = 0; i < y.options.length; i++) if (y.options[i].value === yr) has = true;
+        if (!has && y.options.length > 1) yr = y.options[1].value; // newest year with data
+        y.value = yr;
+        m.disabled = false;
+        m.value = (kind === 'month') ? String(now.getMonth() + 1) : '';
+      }
+      syncChips();
+      loadDashboard();
+    }
+    function syncChips() {
+      var y = $('fltYear').value, m = $('fltMonth').value;
+      var now = new Date();
+      var curY = String(now.getFullYear()), curM = String(now.getMonth() + 1);
+      $('chipAll').classList.toggle('on', !y);
+      $('chipYtd').classList.toggle('on', y === curY && !m);
+      $('chipMonth').classList.toggle('on', y === curY && m === curM);
+    }
+    function populateYears(years) {
+      var sel = $('fltYear');
+      if (!sel || sel.dataset.filled || !years) return;
+      years.forEach(function (y) {
+        var o = document.createElement('option');
+        o.value = y; o.textContent = y;
+        sel.appendChild(o);
+      });
+      sel.dataset.filled = '1';
+    }
+    function openDrill(scope, key) {
+      $('drill').classList.remove('hidden');
+      $('drillTitle').textContent = 'Loading\u2026';
+      $('drillTotal').textContent = '';
+      $('drillBody').innerHTML = '<div class="empty">Loading\u2026</div>';
+      google.script.run
+        .withSuccessHandler(renderDrill)
+        .withFailureHandler(function (err) {
+          $('drillBody').innerHTML = '<div class="empty">Failed: ' + err.message + '</div>';
+        })
+        .getDrilldown(scope, key || '');
+    }
+    function renderDrill(d) {
+      $('drillTitle').textContent = d.title;
+      $('drillTotal').innerHTML = d.count + ' item' + (d.count === 1 ? '' : 's') +
+        ' \u00b7 Total <b class="' + cls(d.total) + '">' + money(d.total) + '</b>';
+      if (!d.rows || !d.rows.length) { $('drillBody').innerHTML = '<div class="empty">No transactions.</div>'; return; }
+      var h = '';
+      d.rows.forEach(function (r) {
+        var amt = r.sign ? money(r.amount) : r.amount;
+        h += '<div class="tx"><div class="l"><span class="t">' + (r.ticker || '') + '</span>' +
+          '<span class="s">' + (r.kind || '') + (r.date ? (' \u00b7 ' + r.date) : '') + '</span></div>' +
+          '<span class="a ' + (r.sign ? cls(r.amount) : '') + '">' + amt + '</span></div>';
+      });
+      $('drillBody').innerHTML = h;
+    }
+    function closeDrill() { $('drill').classList.add('hidden'); }
+
+    function loadDashboard() {
+      $('dashBody').innerHTML = '<div class="card empty">Loading\u2026</div>';
+      $('dashAsOf').textContent = '';
+      google.script.run
+        .withSuccessHandler(renderDashboard)
+        .withFailureHandler(function (err) {
+          $('dashBody').innerHTML = '<div class="card empty">Failed: ' + err.message + '</div>';
+        })
+        .getDashboardData(currentFilter());
+    }
+
+    function renderDashboard(d) {
+      dashLoaded = true;
+      populateYears(d.years);
+      var filtered = (d.filterYear !== null && d.filterYear !== undefined && d.filterYear !== '');
+      $('fltNote').classList.toggle('hidden', !filtered);
+      var h = '';
+      var npClass = d.netPnL >= 0 ? 'pos' : 'neg';
+
+      // 1. Hero: holdings-level net P&L (live value minus effective cost on shares held)
+      h += '<div class="card netpnl"><span class="np-label">Holdings Net P&amp;L' +
+        '<span class="np-sub">on shares held</span></span>' +
+        '<span class="np-val ' + npClass + '">' + money(d.netPnL) + '</span></div>';
+
+      // 2. Holdings right under the hero -- the most actionable view
+      h += avgCostCard('Current Avg Cost (Open Assigned)', d.avgCost);
+
+      // 3. Capital & Returns, compressed: dollar rows drill; derived %s in a quiet grid
+      h += '<div class="card"><p class="sectitle">Capital &amp; Returns</p>';
+      h += row('Initial Capital', money(d.capital));
+      h += rowD('Total Realized P&amp;L', money(d.totalRealized), cls(d.totalRealized), 'total_realized');
+      h += rowD('Total Dividends', money(d.totalDividends), cls(d.totalDividends), 'total_dividends');
+      h += rowD('Total Unrealized P&amp;L', money(d.totalUnrealized), cls(d.totalUnrealized), 'unrealized');
+      h += rowD('Total P&amp;L (Real + Unreal)', money(d.totalPnL), cls(d.totalPnL), 'total_pnl');
+      h += '<div class="pctgrid">' +
+        pcell('% Realized', pct(d.pctRealized), cls(d.pctRealized)) +
+        pcell('% Real + Unreal', pct(d.pctRealizedUnrealized), cls(d.pctRealizedUnrealized)) +
+        pcell('% incl. Dividends', pct(d.pctInclDividends), cls(d.pctInclDividends)) +
+        pcell('Monthly run rate', money(d.monthlyRunRate), cls(d.monthlyRunRate)) +
+        '</div>';
+      h += '</div>';
+
+      // 4. Activity: derived averages lose their chevrons (same drill as Wheels Completed)
+      h += '<div class="card"><p class="sectitle">Activity</p>';
+      h += rowD('Total Premium Collected', money(d.totalPremium), cls(d.totalPremium), 'total_premium');
+      h += rowD('Wheels Completed', num(d.wheelsCompleted), '', 'wheels_completed');
+      h += rowD('Wheels Active', num(d.wheelsActive), '', 'wheels_active');
+      h += row('Avg Wheel Duration', num(d.avgDuration, 1) + ' days');
+      h += row('Avg Annualized / Wheel', pct(d.avgAnnualized), cls(d.avgAnnualized));
+      h += '</div>';
+
+      // 5. Breakdowns with proportional bars
+      h += tickerCard('Realized P&amp;L by Ticker', d.realizedByTicker, 'ticker_realized');
+      h += tickerCard('Dividends by Ticker', d.dividendsByTicker, 'ticker_dividends');
+      h += tickerCard('PUT Premium by Ticker (Assigned)', d.premiumByTicker, 'ticker_premium');
+      h += seriesCard('Weekly Realized (Last 7 Weeks)', d.weekly, 'week');
+      h += seriesCard('Monthly Realized', d.monthly, 'month');
+
+      $('dashBody').innerHTML = h;
+      var MONABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var fl = filtered ? (' \u00b7 ' + (d.filterMonth ? MONABBR[d.filterMonth - 1] + ' ' : '') + d.filterYear) : '';
+      $('dashAsOf').textContent = 'As of ' + new Date(d.asOf).toLocaleString() + fl;
+    }
+
+    /* ---------- init ---------- */
+    setDefaults();
+    // Load data once the app is connected (immediately if it already is).
+    Api.onReady(function () {
+      loadCSPs();
+      if (dashLoaded) loadDashboard();
+    });
+  </script>
+</body>
+</html>
