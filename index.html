@@ -278,7 +278,7 @@
     <div id="formCc" class="card hidden">
       <div class="field">
         <label>Origin CSP (assigned, open leg)
-          <button class="refresh" onclick="loadCSPs()">&#8635; Refresh</button>
+          <button class="refresh" onclick="Api.fresh(loadCSPs)">&#8635; Refresh</button>
         </label>
         <select id="ccOriginCsp" onchange="syncCcTicker()">
           <option value="">Loading&hellip;</option>
@@ -363,7 +363,7 @@
       <div id="fltNote" class="fltnote hidden">Income/premium/dividends filtered by sold date &middot; holdings shown live</div>
       <div class="dashhead">
         <span id="dashAsOf" class="hint"></span>
-        <button class="refresh" onclick="loadDashboard()">&#8635; Refresh</button>
+        <button class="refresh" onclick="Api.fresh(loadDashboard)">&#8635; Refresh</button>
       </div>
       <div id="dashBody"><div class="card empty">Loading&hellip;</div></div>
     </div>
@@ -375,7 +375,7 @@
       </div>
       <div class="dashhead">
         <label class="chk"><input type="checkbox" id="mShowAll" onchange="loadPositions()"> Show finalized</label>
-        <button class="refresh" onclick="loadPositions()">&#8635; Refresh</button>
+        <button class="refresh" onclick="Api.fresh(loadPositions)">&#8635; Refresh</button>
       </div>
       <div id="manageBody"><div class="card empty">Loading&hellip;</div></div>
     </div>
@@ -701,7 +701,21 @@
       var status = $('st_' + kind + '_' + i).value;
       var btn = $('upd_' + kind + '_' + i);
       function reset() { btn.disabled = false; btn.textContent = 'Update'; }
-      function ok() { reset(); toast(id + ' \u2192 ' + status, 'ok'); loadPositions(); }
+      function ok() {
+        reset();
+        toast(id + ' \u2192 ' + status, 'ok');
+        // In the default OPEN-only view, a contract that is no longer OPEN just
+        // leaves the list: remove its card instead of reloading every position.
+        var showAll = $('mShowAll') && $('mShowAll').checked;
+        var card = btn.closest ? btn.closest('.card') : null;
+        if (!showAll && status !== 'OPEN' && card && card.parentNode) {
+          var body = card.parentNode;
+          body.removeChild(card);
+          if (!body.querySelector('.card')) renderPositions([]);
+        } else {
+          loadPositions();
+        }
+      }
       function fail(err) { reset(); toast('Failed: ' + err.message, 'err'); }
 
       btn.disabled = true; btn.textContent = 'Saving\u2026';
@@ -939,6 +953,9 @@
     setDefaults();
     // Load data once the app is connected (immediately if it already is).
     Api.onReady(function () {
+      // One batched request loads the trade list, both Manage lists and the
+      // dashboard; the calls below share it instead of making their own.
+      Api.prefetch(currentFilter());
       loadCSPs();
       if (dashLoaded) loadDashboard();
     });
