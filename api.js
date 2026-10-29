@@ -20,8 +20,8 @@
   var LC_PREFIX = 'wt.c.';
   var FRESH_MS = 30000;
   var URL_PATTERN = /^https:\/\/script\.google\.com\/(?:a\/macros\/[^/]+|macros)\/s\/[^/]+\/exec$/;
-  var CACHEABLE = { getCSPList: 1, getDashboardData: 1, getDrilldown: 1, getOpenPositions: 1 };
-  var WRITES = { addCSP: 1, addCC: 1, setCSPStatus: 1, setCCStatus: 1, addDividend: 1 };
+  var CACHEABLE = { getCSPList: 1, getDashboardData: 1, getDrilldown: 1, getOpenPositions: 1, getTickerDetail: 1 };
+  var WRITES = { addCSP: 1, addCC: 1, setCSPStatus: 1, setCCStatus: 1, addDividend: 1, setInitialCapital: 1 };
 
   var readyCb = null;
   var forceFresh = false;   // set only while a Refresh handler runs
