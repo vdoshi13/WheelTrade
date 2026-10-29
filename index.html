@@ -891,7 +891,13 @@
       h += cd.pct === null
         ? tile('Capital deployed', money0(cd.deployed), '', [['Set your capital in All stats', '']], "openDrill('deployed','')")
         : tile('Capital deployed', Math.round(cd.pct * 100) + '%', '', [[money0(cd.free) + ' free', '']], "openDrill('deployed','')");
-      h += tile('Yield, annualized', pct1(x.yieldAnnual), '', [['on deployed capital', '']], null);
+      var yInc = x.yieldInclUnrealized;
+      h += tile('Yield, annualized', pct1(x.yieldAnnual), '', [
+        ['on deployed capital', ''],
+        x.yieldAnnual === null ? null
+          : (yInc === null || yInc === undefined ? ['incl. unrealized: current periods only', '']
+                                                  : [pct1(yInc) + ' incl. unrealized', cls(yInc)])
+      ], null);
       h += tile('Open P&amp;L', signed0(d.totalUnrealized), cls(d.totalUnrealized), [['unrealized, live', '']],
                 "openDrill('unrealized','')");
       return h + '</div>';
@@ -1014,6 +1020,14 @@
       h += r('Total P&amp;L', money(d.totalPnL), cls(d.totalPnL));
       h += r('Return on capital', pct1(d.pctRealized), cls(d.pctRealized));
       h += r('Return incl. dividends and unrealized', pct1(d.pctInclDividends), cls(d.pctInclDividends));
+      var xx = d.extras || {};
+      h += r('Yield, annualized', pct1(xx.yieldAnnual), cls(xx.yieldAnnual));
+      h += r('Yield incl. unrealized', pct1(xx.yieldInclUnrealized), cls(xx.yieldInclUnrealized));
+      h += '<p class="hint" style="margin:6px 0 4px">Both yields divide by capital actually deployed, counted by the day. ' +
+        'The second also adds today\u2019s unrealized gains and losses on those positions' +
+        (xx.unrealizedInYield === null || xx.unrealizedInYield === undefined
+          ? ', so it\u2019s only shown for periods that run to today.'
+          : ' (' + money(xx.unrealizedInYield) + ').') + '</p>';
       h += r('Monthly run rate', money(d.monthlyRunRate), cls(d.monthlyRunRate));
       h += r('Premium collected', money(d.totalPremium), '');
       h += r('Wheels completed \u00b7 active', num(d.wheelsCompleted) + ' \u00b7 ' + num(d.wheelsActive), '');

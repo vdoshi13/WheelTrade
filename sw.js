@@ -5,7 +5,7 @@
  * Script are POSTs to another origin and always go straight to the network,
  * so trade data is never cached.
  */
-const CACHE = 'wheel-tracker-v3';
+const CACHE = 'wheel-tracker-v4';
 const SHELL = [
   './', './index.html', './api.js', './manifest.webmanifest',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'
