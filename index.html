@@ -920,7 +920,8 @@
           '<span class="hv">' + (a.hasLive ? signed0(a.netPnL) : '\u2014') + '</span></div>' +
           '<span class="hl">Avg ' + money(a.avgCost) + (a.hasLive ? ' \u00b7 live ' + money(a.livePrice) +
             ' \u00b7 value ' + money0(a.liveCost) : ' \u00b7 no live price') + '</span>' +
-          '<span class="hl">' + (be ? be + ' \u00b7 ' : '') + 'min call ' + money(a.minCall) + '</span></div>';
+          '<span class="hl">' + [be, a.minCall === null || a.minCall === undefined ? '' : 'min call ' + money(a.minCall)]
+            .filter(Boolean).join(' \u00b7 ') + '</span></div>';
         if (a.hasLive) { anyLive = true; tVal += a.liveCost; tPnL += a.netPnL; }
       });
       h += '<div class="htotal"><span>Total \u00b7 value ' + (anyLive ? money0(tVal) : '\u2014') + '</span>' +
@@ -1072,7 +1073,7 @@
           '<div class="hrow"><span class="ht">' + num(a.shares) + ' shares held</span><span class="hv">' +
           (a.hasLive ? signed0(a.netPnL) : '\u2014') + '</span></div>' +
           '<span class="hl">Avg ' + money(a.avgCost) + (a.hasLive ? ' \u00b7 live ' + money(a.livePrice) : '') +
-          ' \u00b7 min call ' + money(a.minCall) + '</span></div>';
+          (a.minCall === null || a.minCall === undefined ? '' : ' \u00b7 min call ' + money(a.minCall)) + '</span></div>';
       } else {
         h += '<p class="hint" style="margin:10px 0 0">Not holding shares right now.</p>';
       }
